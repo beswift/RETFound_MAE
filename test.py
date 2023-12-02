@@ -15,7 +15,7 @@ modelStore = './models/'
 if not os.path.exists(modelStore):
     os.makedirs(modelStore)
 
-model_folder = 'ch-tagstest-12-02-2023-004214'
+model_folder = 'ch-tagstest-12-02-2023-120331'
 model_path = os.path.join(modelStore, model_folder)
 
 use_thresholding = False

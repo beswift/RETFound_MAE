@@ -133,3 +133,8 @@ dmypy.json
 
 IDRiD_data
 models
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/inspectionProfiles/Project_Default.xml
+.idea/modules.xml
+.idea/RETFound_MAE.iml
+.idea/workspace.xml
