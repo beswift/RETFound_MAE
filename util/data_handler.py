@@ -34,7 +34,9 @@ def split_dataset(parent_folder, train_size=0.7, val_size=0.15, test_size=0.15):
                 try:
                     if not os.path.exists(os.path.join(output_folder, 'train', cls)):
                         os.makedirs(os.path.join(output_folder, 'train', cls))
-                    shutil.move(os.path.join(cls_path, img), os.path.join(output_folder, 'train', cls, img))
+                    # copy the image to the train folder not move
+                    shutil.copy(os.path.join(cls_path, img), os.path.join(output_folder, 'train', cls, img))
+
                 except:
                     traceback.print_exc()
                     print(f'Error moving {img}')
@@ -42,14 +44,16 @@ def split_dataset(parent_folder, train_size=0.7, val_size=0.15, test_size=0.15):
                 try:
                     if not os.path.exists(os.path.join(output_folder, 'val', cls)):
                         os.makedirs(os.path.join(output_folder, 'val', cls))
-                    shutil.move(os.path.join(cls_path, img), os.path.join(output_folder, 'val', cls, img))
+                    # copy the image to the val folder not move
+                    shutil.copy(os.path.join(cls_path, img), os.path.join(output_folder, 'val', cls, img))
                 except:
                     print(f'Error moving {img}')
             for img in test:
                 try:
                     if not os.path.exists(os.path.join(output_folder, 'test', cls)):
                         os.makedirs(os.path.join(output_folder, 'test', cls))
-                    shutil.move(os.path.join(cls_path, img), os.path.join(output_folder, 'test', cls, img))
+                    # copy the image to the test folder not move
+                    shutil.copy(os.path.join(cls_path, img), os.path.join(output_folder, 'test', cls, img))
                 except:
                     print(f'Error moving {img}')
         except:
