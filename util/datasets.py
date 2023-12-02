@@ -7,6 +7,7 @@ import os
 from torchvision import datasets, transforms
 from timm.data import create_transform
 from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+from torchvision.transforms import InterpolationMode
 
 
 def build_dataset(is_train, args):
@@ -46,7 +47,7 @@ def build_transform(is_train, args):
         crop_pct = 1.0
     size = int(args.input_size / crop_pct)
     t.append(
-        transforms.Resize(size, interpolation=transforms.InterpolationMode.BICUBIC), 
+        transforms.Resize(size, interpolation=InterpolationMode.BILINEAR),
     )
     t.append(transforms.CenterCrop(args.input_size))
     t.append(transforms.ToTensor())

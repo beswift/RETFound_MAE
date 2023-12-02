@@ -44,7 +44,10 @@ def misc_measures(confusion_matrix):
         precision.append(precision_)
         G.append(np.sqrt(sensitivity_*specificity_))
         F1_score_2.append(2*precision_*sensitivity_/(precision_+sensitivity_))
-        mcc = (cm1[0,0]*cm1[1,1]-cm1[0,1]*cm1[1,0])/np.sqrt((cm1[0,0]+cm1[0,1])*(cm1[0,0]+cm1[1,0])*(cm1[1,1]+cm1[1,0])*(cm1[1,1]+cm1[0,1]))
+        eps = 1e-10
+        mcc = (cm1[0, 0] * cm1[1, 1] - cm1[0, 1] * cm1[1, 0]) / np.sqrt(
+            (cm1[0, 0] + cm1[0, 1]) * (cm1[0, 0] + cm1[1, 0]) * (cm1[1, 1] + cm1[1, 0]) * (cm1[1, 1] + cm1[0, 1]) + eps)
+
         mcc_.append(mcc)
         
     acc = np.array(acc).mean()
@@ -95,7 +98,13 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             outputs = model(samples)
             loss = criterion(outputs, targets)
 
-        loss_value = loss.item()
+        try:
+            loss_value = loss.item()
+        except:
+            print(loss)
+            print(outputs)
+            print(targets)
+            sys.exit(1)
 
         if not math.isfinite(loss_value):
             print("Loss is {}, stopping training".format(loss_value))
