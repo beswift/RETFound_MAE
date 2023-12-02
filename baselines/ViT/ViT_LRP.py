@@ -436,11 +436,12 @@ def deit_base_patch16_224(pretrained=False, **kwargs):
         model.load_state_dict(checkpoint["model"])
     return model
 
-def vit_large_patch16_224_ch(pretrained=True, model='', **kwargs):
+def vit_large_patch16_224_ch(pretrained=True, checkpoint='', **kwargs):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = VisionTransformer(
         patch_size=16, embed_dim=1024, depth=24, num_heads=16, mlp_ratio=4, qkv_bias=True, **kwargs)
     if pretrained:
-        checkpoint = torch.load("X:\code\RetFound\RETFound_MAE\models\ch-tagstest-12-01-2023-170520\checkpoint-best.pth", map_location="cpu")
+        checkpoint = torch.load(checkpoint, map_location=device)
         checkpoint_model = checkpoint["model"]
 
         # Handle the state dictionary as in the training script
