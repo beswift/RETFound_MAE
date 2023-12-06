@@ -1,8 +1,98 @@
 import os
 import shutil
 from sklearn.model_selection import train_test_split
+from torch.utils.data import Dataset, DataLoader
 import traceback
 import datetime
+import random
+import torch
+import numpy as np
+import matplotlib.pyplot as plt
+import torchvision.transforms as transforms
+from PIL import Image
+
+
+
+
+class PairedImageDataset(Dataset):
+    def __init__(self, fundus_folder, fa_folder, transform=None):
+        self.fundus_folder = fundus_folder
+        self.fa_folder = fa_folder
+        self.transform = transform
+
+        self.fundus_images = sorted(os.listdir(fundus_folder))
+        self.fa_images = sorted(os.listdir(fa_folder))
+
+    def __len__(self):
+        return len(self.fundus_images)
+
+    def __getitem__(self, idx):
+        fundus_img_path = os.path.join(self.fundus_folder, self.fundus_images[idx])
+        fa_img_path = os.path.join(self.fa_folder, self.fa_images[idx])
+
+        fundus_img = Image.open(fundus_img_path).convert('RGB')
+        fa_img = Image.open(fa_img_path).convert('L')  # 'L' mode for grayscale
+
+        if self.transform:
+            fundus_img = self.transform(fundus_img)
+            fa_img = self.transform(fa_img)
+
+        return fundus_img, fa_img
+
+
+# Function to display a sample image and its reconstruction
+def display_sample_reconstruction(model, dataset, device):
+    model.eval()
+    with torch.no_grad():
+        # Randomly choose an image from the dataset
+        idx = random.randint(0, len(dataset) - 1)
+        original_img, _ = dataset[idx]
+        original_img = original_img.unsqueeze(0).to(device)  # Add batch dimension and move to device
+
+        # Reconstruct the image
+        reconstructed_img = model(original_img).squeeze(0).cpu()
+
+        # Post-process the reconstructed image
+        # (Add any necessary post-processing steps here)
+
+        # Convert tensors to PIL images for display
+        original_img_pil = transforms.ToPILImage()(original_img.squeeze(0))
+        reconstructed_img_pil = transforms.ToPILImage()(reconstructed_img)
+
+        # Display the images
+        plt.figure(figsize=(12, 6))
+        plt.subplot(1, 2, 1)
+        plt.imshow(original_img_pil)
+        plt.title("Original Image")
+        plt.axis("off")
+        plt.subplot(1, 2, 2)
+        plt.imshow(reconstructed_img_pil)
+        plt.title("Reconstructed Image")
+        plt.axis("off")
+        # show the plot for 2 seconds and then save it
+        plt.show(block=False)
+        plt.pause(2)
+        plt.close()
+
+
+def log_sample_reconstruction_to_tensorboard(writer, model, dataset, device, epoch, tag='Reconstruction'):
+    model.eval()
+    with torch.no_grad():
+        # Randomly choose an image from the dataset
+        idx = random.randint(0, len(dataset) - 1)
+        original_img, _ = dataset[idx]
+        original_img_tensor = original_img.unsqueeze(0).to(device)  # Add batch dimension and move to device
+
+        # Reconstruct the image
+        reconstructed_img = model(original_img_tensor).squeeze(0)  # Remove batch dimension
+
+        # Convert grayscale to RGB by replicating the single channel
+        reconstructed_img_rgb = reconstructed_img.repeat(3, 1, 1)  # Repeat channel 3 times
+
+        # Create an image grid
+        img_grid = torch.cat((original_img_tensor.squeeze(0), reconstructed_img_rgb), dim=2)  # Concatenate along width
+        writer.add_images(tag, img_grid.unsqueeze(0), epoch)  # Add batch dimension for TensorBoard
+
 
 def split_dataset(parent_folder, train_size=0.7, val_size=0.15, test_size=0.15):
 

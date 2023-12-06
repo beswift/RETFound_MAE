@@ -19,9 +19,9 @@ octweightpath = os.path.join('D:\\data\\RetFound\\weights', 'RETFound_oct_weight
 #octcheckpoint = torch.load(octweightpath, map_location='cpu')
 
 #vars to be set by user
-parent_folder = 'X:\\code\\UIaEYE\\data\\Cherry Health\\images\\segmented\\Cherry Health_11-30-2023-030627\\_dataset_11-30-2023-tags\\training_data'
+parent_folder = 'X:\\code\\UIaEYE\\data\\Cherry Health\\images\\segmented\\dataset-clean and trimmed-tags-12-02-2023-022946\\pathology'
 output_folder = ''
-batch_size = 16
+batch_size = 10
 world_size = 1
 epochs = 100
 base_model = 'vit_large_patch16'
@@ -31,7 +31,7 @@ layer_decay = 0.65
 weight_decay = 0.05
 drop_path = 0.2
 num_classes = 2
-task ='ch-tagstest'
+task ='ch-quality'
 
 
 
