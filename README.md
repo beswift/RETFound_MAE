@@ -1,11 +1,10 @@
-## RETFound - A foundation model for retinal imaging
+## RETFound - A Playground for Pushing EyeCare Bounds
 
 
-This is the official repo for [RETFound: a foundation model for generalizable disease detection from retinal images](https://www.nature.com/articles/s41586-023-06555-x), which is based on [MAE](https://github.com/facebookresearch/mae):
+This is not the official repo for [RETFound: a foundation model for generalizable disease detection from retinal images](https://www.nature.com/articles/s41586-023-06555-x), which is based on [MAE](https://github.com/facebookresearch/mae):
+(Or Keras version implemented by Yuka Kihara can be found [here](https://github.com/uw-biomedical-ml/RETFound_MAE))
 
-Please contact 	**ykzhoua@gmail.com** or **yukun.zhou.19@ucl.ac.uk** if you have questions.
-
-Keras version implemented by Yuka Kihara can be found [here](https://github.com/uw-biomedical-ml/RETFound_MAE)
+This is a repo for playing with RETFound. 
 
 
 ### Key features
@@ -13,12 +12,6 @@ Keras version implemented by Yuka Kihara can be found [here](https://github.com/
 - RETFound is pre-trained on 1.6 million retinal images with self-supervised learning
 - RETFound has been validated in multiple disease detection tasks
 - RETFound can be efficiently adapted to customised tasks
-
-
-### News
-
-- 2023/09: a [visualisation demo](https://github.com/rmaphoh/RETFound_MAE/blob/main/RETFound_visualize.ipynb) is added
-- 2023/10: change the hyperparameter of [input_size](https://github.com/rmaphoh/RETFound_MAE#:~:text=finetune%20./RETFound_cfp_weights.pth%20%5C-,%2D%2Dinput_size%20224,-For%20evaluation%20only) for any image size
 
 
 ### Install environment
@@ -35,7 +28,7 @@ conda activate retfound
 ```
 git clone https://github.com/rmaphoh/RETFound_MAE/
 cd RETFound_MAE
-pip install -r requirement.txt
+pip install -r requirements.txt
 ```
 
 

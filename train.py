@@ -10,6 +10,7 @@ import json
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f'Using device: {device}')
 
 # load RETFound weights
 cfpweightpath = os.path.join('D:\\data\\RetFound\\weights', 'RETFound_cfp_weights.pth')
@@ -23,7 +24,7 @@ parent_folder = 'X:\\code\\UIaEYE\\data\\Cherry Health\\images\\segmented\\datas
 output_folder = ''
 batch_size = 10
 world_size = 1
-epochs = 100
+epochs = 10
 base_model = 'vit_large_patch16'
 ft_weightpath = cfpweightpath
 blr = 5e-3
@@ -68,7 +69,8 @@ check_images(data_folder)
 num_classes = len([d for d in os.listdir(os.path.join(data_folder, 'train')) if os.path.isdir(os.path.join(data_folder, 'train', d))])
 #number of training images is the total number of files in all subfolders of train
 num_training_images = sum([len(files) for r, d, files in os.walk(os.path.join(data_folder, 'train'))])
-classes = os.listdir(os.path.join(data_folder, 'train'))
+#classes are the subfolders of train only (i.e. the class names)
+classes = [d for d in os.listdir(os.path.join(data_folder, 'train')) if os.path.isdir(os.path.join(data_folder, 'train', d))]
 
 print(f'Number of classes: {num_classes}')
 print(f'Classes: {classes}')

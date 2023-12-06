@@ -136,3 +136,8 @@ models
 data
 Transformer-Explainability
 explain
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/inspectionProfiles/Project_Default.xml
+.idea/modules.xml
+.idea/RETFound_MAE.iml
+.idea/workspace.xml
