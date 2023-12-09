@@ -20,11 +20,11 @@ octweightpath = os.path.join('D:\\data\\RetFound\\weights', 'RETFound_oct_weight
 #octcheckpoint = torch.load(octweightpath, map_location='cpu')
 
 #vars to be set by user
-parent_folder = 'X:\\code\\UIaEYE\\data\\Cherry Health\\images\\segmented\\dataset-clean and trimmed-tags-12-02-2023-022946\\pathology'
+parent_folder = 'X:\\code\\UIaEYE\\data\\Cherry Health\\images\\segmented\\dataset-clean and trimmed-tags-12-02-2023-022946\\observations'
 output_folder = ''
 batch_size = 10
 world_size = 1
-epochs = 10
+epochs = 50
 base_model = 'vit_large_patch16'
 ft_weightpath = cfpweightpath
 blr = 5e-3
@@ -32,7 +32,7 @@ layer_decay = 0.65
 weight_decay = 0.05
 drop_path = 0.2
 num_classes = 2
-task ='ch-quality'
+task ='ch-observations'
 
 
 
@@ -107,31 +107,6 @@ trunc_normal_(model.head.weight, std=2e-5)
 
 print("Model = %s" % str(model))
 
-# Prepare command for fine-tuning
-command = [
-    'python', 'main_finetune.py',
-    '--data_path', data_folder,  # Use the output folder from split_dataset
-    '--batch_size', str(batch_size),
-    '--world_size', str(world_size),
-    '--epochs', str(epochs),
-    '--model', base_model,
-    '--finetune', ft_weightpath,
-    '--blr', str(blr),
-    '--layer_decay', str(layer_decay),
-    '--weight_decay', str(weight_decay),
-    '--drop_path', str(drop_path),
-    '--nb_classes',str(num_classes),
-    '--task', f'./{task}/',
-    '--output_dir', output_folder,
-
-    # Add other necessary arguments here
-]
-
-# Run the fine-tuning command
-subprocess.run(command)
-
-
-
 # Save dataset information
 dataset_info = {
     'num_classes': num_classes,
@@ -159,5 +134,31 @@ training_config = {
 training_config_path = os.path.join(task, 'training_config.json')
 with open(training_config_path, 'w') as f:
     json.dump(training_config, f)
+
+# Prepare command for fine-tuning
+command = [
+    'python', 'main_finetune.py',
+    '--data_path', data_folder,  # Use the output folder from split_dataset
+    '--batch_size', str(batch_size),
+    '--world_size', str(world_size),
+    '--epochs', str(epochs),
+    '--model', base_model,
+    '--finetune', ft_weightpath,
+    '--blr', str(blr),
+    '--layer_decay', str(layer_decay),
+    '--weight_decay', str(weight_decay),
+    '--drop_path', str(drop_path),
+    '--nb_classes',str(num_classes),
+    '--task', f'./{task}/',
+    '--output_dir', output_folder,
+
+    # Add other necessary arguments here
+]
+
+# Run the fine-tuning command
+subprocess.run(command)
+
+
+
 
 

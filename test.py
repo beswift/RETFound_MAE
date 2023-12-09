@@ -15,7 +15,7 @@ modelStore = './models/'
 if not os.path.exists(modelStore):
     os.makedirs(modelStore)
 
-model_folder = 'ch-quality-12-06-2023-143740'
+model_folder = 'ch-observations-12-07-2023-020211'
 model_path = os.path.join(modelStore, model_folder)
 
 use_thresholding = False
@@ -128,6 +128,9 @@ model.eval()
 model.to(device)
 
 
+
+
+
 # Define your image transforms
 transform = transforms.Compose([
     transforms.Resize((input_size, input_size)),
@@ -148,15 +151,27 @@ def random_images(images):
 selected_images = random_images(images)
 print(selected_images)
 count = 0
-for i in range(len(selected_images)):
-    image_path = os.path.join(imagedir, selected_images[i])
-    image = Image.open(os.path.join(imagedir, selected_images[i]))
+
+# Initialize explainability modules
+model_explain = vit_LRP(pretrained=True, checkpoint=weightpath)  # Ensure this returns the LRP-capable model
+model_explain = model_explain.to(device)
+model_explain.eval()
+
+print("Model loaded for explainability")
+attribution_generator = LRP(model_explain)
+print("Attribution generator loaded")
+for s in range(len(selected_images)):
+    image_path = os.path.join(imagedir, selected_images[s])
+    image = Image.open(os.path.join(imagedir, selected_images[s]))
     image = transform(image).unsqueeze(0)  # Add batch dimension
     image = image.to(device)
 
     # Run inference
     with torch.no_grad():
         output = model(image)
+        probabilities = torch.nn.functional.softmax(output, dim=1)[0]
+        top_predictions = torch.topk(probabilities, min(5, num_classes))  # Get top predictions, up to 5
+        top_prediction = top_predictions.indices[0].item()
         prediction = output.argmax(dim=1)
         print(prediction)
 
@@ -173,42 +188,27 @@ for i in range(len(selected_images)):
     for i in range(num_classes):
         print(classes[indices[i]], sorted[i].item())
 
-
-
-
-    # Initialize explainability modules
-    model_explain = vit_LRP(pretrained=True, checkpoint=weightpath)  # Ensure this returns the LRP-capable model
-    model_explain = model_explain.to(device)
-    model_explain.eval()
-
-    print("Model loaded for explainability")
-    attribution_generator = LRP(model_explain)
-    print("Attribution generator loaded")
-
-
-
-
-    print("Generating visualization")
-    # Load and preprocess your test image
     original_image = Image.open(image_path)
     print("Image loaded")
+    top_class_name = classes[top_prediction]
+    print("Top class name:", top_class_name)
     original_image.show()
-    original_image.save(os.path.join(model_path, f'{i}-{count}-original_image-{prediction.item()}.jpg'))
+
+    original_image.save(os.path.join(model_path, f'{s}-{count}-original_image-{top_class_name}.jpg'))
+
+    # Display top predictions with confidence
+    print("Top Predictions:")
+    for i in range(top_predictions.indices.size(0)):
+        class_index = top_predictions.indices[i].item()
+        confidence = top_predictions.values[i].item()
+        print(f"Class: {classes[class_index]}, Confidence: {confidence:.4f}")
+        class_name = classes[class_index]
+        print("Class name:", class_name)
+
+        vis = generate_visualization(image, class_index=class_index)
+        vis_image = Image.fromarray(cv2.cvtColor(vis, cv2.COLOR_BGR2RGB))
+        vis_image.show()  # or vis_image.save(f'output_class_{class_index}.jpg')
+        vis_image.save(os.path.join(model_path, f'{s}-{count}-vis_image-{class_name}.jpg'))
 
 
-
-    # Run inference and get predictions
-    output = model(image)
-    prediction = output.argmax(dim=1)
-    print("Predicted class:", prediction.item())
-
-    # Generate visualization for the predicted class
-    vis = generate_visualization(image, class_index=prediction.item())
-
-    # Convert visualization to PIL image for display or saving
-    vis_image = Image.fromarray(cv2.cvtColor(vis, cv2.COLOR_BGR2RGB))
-
-    # Display or save the result
-    vis_image.show()  # or vis_image.save('output_path.jpg')
-    vis_image.save(os.path.join(model_path, f'{i}-{count}-explain-{prediction.item()}.jpg'))
-    count += 1
+        count += 1

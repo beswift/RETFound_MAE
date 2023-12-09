@@ -100,7 +100,7 @@ def split_dataset(parent_folder, train_size=0.7, val_size=0.15, test_size=0.15):
     classes = [f for f in os.listdir(parent_folder) if os.path.isdir(os.path.join(parent_folder, f)) and not f.startswith('_dataset')]
     time = datetime.datetime.now().strftime("%m-%d-%Y-%H%M%S")
 
-    output_folder = os.path.join(parent_folder, f'_dataset_{time}', 'training_data')
+    output_folder = os.path.join(parent_folder,'_datasets', f'_dataset_{time}', 'training_data')
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 

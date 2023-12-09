@@ -6,8 +6,14 @@ This is not the official repo for [RETFound: a foundation model for generalizabl
 
 This is a repo for playing with RETFound. 
 
+Currently, it supports:
+- Fine-tuning RETFound on your own data
+- Using the wonderful [Transformer-MM-Explainability Repo by @hila-chefer](https://github.com/hila-chefer/Transformer-MM-Explainability) to explain the predictions of RETFound
+- An attempt at using the retfound weights to train a Color Fundus Photo (cfp) to Fluorescein Angiography (FA) encoder-decoder model
 
-### Key features
+()
+
+### Key features of RETFound
 
 - RETFound is pre-trained on 1.6 million retinal images with self-supervised learning
 - RETFound has been validated in multiple disease detection tasks
@@ -15,6 +21,8 @@ This is a repo for playing with RETFound.
 
 
 ### Install environment
+
+Before you do anything else, you need to get a clean environment set up.
 
 1. Create environment with conda:
 
@@ -26,17 +34,21 @@ conda activate retfound
 2. Install dependencies
 
 ```
-git clone https://github.com/rmaphoh/RETFound_MAE/
+git clone https://github.com/beswift/RETFound_MAE.git
 cd RETFound_MAE
 pip install -r requirements.txt
 ```
 
 
-### Fine-tuning with RETFound weights
 
-To fine tune RETFound on your own data, follow these steps:
 
-1. Download the RETFound pre-trained weights
+
+### Fine-Tuning with your own data using the retfound weights
+
+To fine tune RETFound on your own data:
+<br> _Did you follow the steps above to get your environment set up?  Do that first!_
+<br>
+<br> 1. Download the RETFound pre-trained weights
 <table><tbody>
 <!-- START TABLE -->
 <!-- TABLE HEADER -->
@@ -52,95 +64,70 @@ To fine tune RETFound on your own data, follow these steps:
 </tr>
 </tbody></table>
 
-2. Organise your data into this directory structure (using IDRiD as an [example](Example.ipynb))
-
-<p align="left">
-  <img src="./pic/file_index.jpg" width="160">
-</p>
-
-
-3. Start fine-tuning (use IDRiD as example). A fine-tuned checkpoint will be saved during training. Evaluation will be run after training.
-
-
+2. Organise your images into folders so that each folder is the name of the "class" the images belong to, like:
 ```
-python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_finetune.py \
-    --batch_size 16 \
-    --world_size 1 \
-    --model vit_large_patch16 \
-    --epochs 50 \
-    --blr 5e-3 --layer_decay 0.65 \
-    --weight_decay 0.05 --drop_path 0.2 \
-    --nb_classes 5 \
-    --data_path ./IDRiD_data/ \
-    --task ./finetune_IDRiD/ \
-    --finetune ./RETFound_cfp_weights.pth \
-    --input_size 224
-
+├── data
+│   ├── class_1
+│   │   ├── image_1.jpg
+│   │   ├── image_2.jpg
+│   │   ├── image_3.jpg
+│   ├── class_2
+│   │   ├── image_1.jpg
+│   │   ├── image_2.jpg
+│   │   ├── image_3.jpg
+│   ├── class_3
+│   │   ├── image_1.jpg
+│   │   ├── image_2.jpg
+│   │   ├── image_3.jpg
+```
+3. In a terminal, run the following command to start fine-tuning (use IDRiD as example). A fine-tuned checkpoint will be saved during training. Evaluation will be run after training.
+```
+python train.py
 ```
 
-
-4. For evaluation only
-
-
+4. To evaluate the fine-tuned model, run the following command:
 ```
-python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_finetune.py \
-    --eval --batch_size 16 \
-    --world_size 1 \
-    --model vit_large_patch16 \
-    --epochs 50 \
-    --blr 5e-3 --layer_decay 0.65 \
-    --weight_decay 0.05 --drop_path 0.2 \
-    --nb_classes 5 \
-    --data_path ./IDRiD_data/ \
-    --task ./internal_IDRiD/ \
-    --resume ./finetune_IDRiD/checkpoint-best.pth \
-    --input_size 224
-
+python test.py
 ```
 
 
-### Load the model and weights (if you want to call the model in your code)
+### Using the Retfound weights to train a Color Fundus Photo (cfp) to Fluorescein Angiography (FA) encoder-decoder model
 
-```python
-import torch
-import models_vit
-from util.pos_embed import interpolate_pos_embed
-from timm.models.layers import trunc_normal_
+To train a cfp to FA encoder-decoder model using the retfound weights:
+<br> _Did you follow the steps above to get your environment set up?  Do that first!_
 
-# call the model
-model = models_vit.__dict__['vit_large_patch16'](
-    num_classes=2,
-    drop_path_rate=0.2,
-    global_pool=True,
-)
+1. Download the retfound weights
+2. Organise your images into folders so that each folder is the name of the "class" the images belong to, like:
+```
+├── data
+│   ├── cfp
+│   │   ├── image_1.jpg
+│   │   ├── image_2.jpg
+│   │   ├── image_3.jpg
+│   ├── fa
+|   |   ├── image_1.jpg
+│   │   ├── image_2.jpg
+│   │   ├── image_3.jpg
+```
+3. In a terminal, run the following command to start training:
+```
+python leaky.py
+```
 
-# load RETFound weights
-checkpoint = torch.load('RETFound_cfp_weights.pth', map_location='cpu')
-checkpoint_model = checkpoint['model']
-state_dict = model.state_dict()
-for k in ['head.weight', 'head.bias']:
-    if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
-        print(f"Removing key {k} from pretrained checkpoint")
-        del checkpoint_model[k]
-
-# interpolate position embedding
-interpolate_pos_embed(model, checkpoint_model)
-
-# load pre-trained model
-msg = model.load_state_dict(checkpoint_model, strict=False)
-
-assert set(msg.missing_keys) == {'head.weight', 'head.bias', 'fc_norm.weight', 'fc_norm.bias'}
-
-# manually initialize fc layer
-trunc_normal_(model.head.weight, std=2e-5)
-
-print("Model = %s" % str(model))
+4. To evaluate the model, run the following command:
+```
+python leakyTest.py
 ```
 
 
+<br>
+<br>
+
+
+### See the [original README](retfound_readme.md) for more details on how to use the base retfound scripts
 ### Citation
 
-If you find this repository useful, please consider citing this paper:
+If you find the RETFound repository useful, please consider citing this paper:
 ```
 @article{zhou2023foundation,
   title={A foundation model for generalizable disease detection from retinal images},
@@ -152,4 +139,4 @@ If you find this repository useful, please consider citing this paper:
 }
 ```
 
-
+If you find this repo useful, that's amazing and unexpected! If you are interested in working or partnering on eye care, chronic disease or wellness related projects, we'd love to work with you over at [Unified Imaging](https://github.com/unifiedimaging)! 
