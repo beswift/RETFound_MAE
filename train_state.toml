@@ -1,0 +1,24 @@
+[training]
+cfpweightpath = 'D:\\data\\RetFound\\weights\\RETFound_cfp_weights.pth'
+octweightpath = 'D:\\data\\RetFound\\weights\\RETFound_oct_weights.pth'
+parent_folder = 'X:\\code\\UIaEYE\\data\\Cherry Health\\images\\segmented\\dataset-clean and trimmed-tags-12-02-2023-022946\\observations'
+output_folder = ''
+batch_size = 10
+world_size = 1
+epochs = 10
+base_model = 'vit_large_patch16'
+ft_weightpath = 'D:\\data\\RetFound\\weights\\RETFound_cfp_weights.pth'
+blr = 0.005
+layer_decay = 0.65
+weight_decay = 0.05
+drop_path = 0.2
+num_classes = 2
+task = 'ch-observations'
+rmbg = true
+input_size = 224
+use_cases = ["Use case 1", "Use case 2"]
+limitations = ["Limitation 1", "Limitation 2"]
+ethics = ["Ethics 1", "Ethics 2"]
+authors = ["Author 1", "Author 2"]
+references = ["Reference 1", "Reference 2"]
+intended_use = 'Intended for use with ch-observations'

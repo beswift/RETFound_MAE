@@ -7,32 +7,48 @@ from util.data_handler import split_dataset, check_images
 import subprocess
 import datetime
 import json
+import toml
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f'Using device: {device}')
 
-# load RETFound weights
-cfpweightpath = os.path.join('D:\\data\\RetFound\\weights', 'RETFound_cfp_weights.pth')
-octweightpath = os.path.join('D:\\data\\RetFound\\weights', 'RETFound_oct_weights.pth')
+try:
+    # Load configurations from toml file
+    with open("train_state.toml", "r") as toml_file:
+        config = toml.load(toml_file)
+except:
+    print('Error loading toml file')
+    if not os.path.exists('train_state.toml'):
+        print('File does not exist')
+        os.makedirs('train_state.toml')
+    else:
+        print('File exists but could not be loaded')
 
-#cfpcheckpoint = torch.load(cfpweightpath, map_location='cpu')
-#octcheckpoint = torch.load(octweightpath, map_location='cpu')
-
-#vars to be set by user
-parent_folder = 'X:\\code\\UIaEYE\\data\\Cherry Health\\images\\segmented\\dataset-clean and trimmed-tags-12-02-2023-022946\\observations'
-output_folder = ''
-batch_size = 10
-world_size = 1
-epochs = 50
-base_model = 'vit_large_patch16'
-ft_weightpath = cfpweightpath
-blr = 5e-3
-layer_decay = 0.65
-weight_decay = 0.05
-drop_path = 0.2
-num_classes = 2
-task ='ch-observations'
+# Now access your variables like this
+cfpweightpath = config["training"]["cfpweightpath"]
+octweightpath = config["training"]["octweightpath"]
+parent_folder = config["training"]["parent_folder"]
+output_folder = config["training"]["output_folder"]
+batch_size = config["training"]["batch_size"]
+world_size = config["training"]["world_size"]
+epochs = config["training"]["epochs"]
+base_model = config["training"]["base_model"]
+ft_weightpath = config["training"]["ft_weightpath"]
+blr = config["training"]["blr"]
+layer_decay = config["training"]["layer_decay"]
+weight_decay = config["training"]["weight_decay"]
+drop_path = config["training"]["drop_path"]
+num_classes = config["training"]["num_classes"]
+task = config["training"]["task"]
+rmbg = config["training"]["rmbg"]
+input_size = config["training"]["input_size"]
+use_cases = config["training"]["use_cases"]
+limitations = config["training"]["limitations"]
+ethics = config["training"]["ethics"]
+authors = config["training"]["authors"]
+references = config["training"]["references"]
+intended_use = config["training"]["intended_use"]
 
 
 
@@ -48,7 +64,7 @@ if not os.path.exists(output_folder):
 
 # if parent folder is not split (i.e does not contain train, val, test folders), split it
 if not os.path.exists(os.path.join(parent_folder, 'train')):
-    data_folder = split_dataset(parent_folder)
+    data_folder = split_dataset(parent_folder,remove_background=rmbg)
 else:
     data_folder = parent_folder
 
@@ -158,7 +174,42 @@ command = [
 # Run the fine-tuning command
 subprocess.run(command)
 
+# Config for the model
+config = {
+    "model_type": "ViT",
+    "architecture": base_model,
+    "input_size": input_size,
+    "num_classes": num_classes,
+    "drop_path_rate": drop_path,
+    "layer_decay": layer_decay,
+    "weight_decay": weight_decay,
+    "base_learning_rate": blr,
+    "batch_size": batch_size,
+    "epochs": epochs
+}
+
+# Content for the model card
+model_card = {
+    "model_name": f'{task}-{time}',
+    "description": f'Fine-tuned {base_model} model for {task}',
+    "use_cases": use_cases,
+    "limitations": limitations,
+    "ethics": ethics,
+    "training_data": f'{num_training_images} images from {num_classes} classes',
+    "training_procedure": f'Fine-tuned for {epochs} epochs with batch size {batch_size} and base learning rate {blr}',
+    "intended_use": intended_use,
+    "authors": authors,
+    "references": references,
+}
 
 
+# Save config.json
+config_path = os.path.join(task, 'config.json')
+with open(config_path, 'w') as f:
+    json.dump(config, f)
 
+# Save model_card.json
+model_card_path = os.path.join(task, 'model_card.json')
+with open(model_card_path, 'w') as f:
+    json.dump(model_card, f)
 

@@ -10,6 +10,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
 from PIL import Image
+from .fundus_prep import process_without_gb,imread,imwrite
+
 
 
 
@@ -94,7 +96,7 @@ def log_sample_reconstruction_to_tensorboard(writer, model, dataset, device, epo
         writer.add_images(tag, img_grid.unsqueeze(0), epoch)  # Add batch dimension for TensorBoard
 
 
-def split_dataset(parent_folder, train_size=0.7, val_size=0.15, test_size=0.15):
+def split_dataset(parent_folder, train_size=0.7, val_size=0.15, test_size=0.15, remove_background=False):
 
     #exclude dirs that start with dataset from classes
     classes = [f for f in os.listdir(parent_folder) if os.path.isdir(os.path.join(parent_folder, f)) and not f.startswith('_dataset')]
@@ -118,34 +120,36 @@ def split_dataset(parent_folder, train_size=0.7, val_size=0.15, test_size=0.15):
             traceback.print_exc()
             continue
 
+        if not os.path.exists(os.path.join(output_folder, 'train', cls)):
+            os.makedirs(os.path.join(output_folder, 'train', cls))
+        if not os.path.exists(os.path.join(output_folder, 'val', cls)):
+            os.makedirs(os.path.join(output_folder, 'val', cls))
+        if not os.path.exists(os.path.join(output_folder, 'test', cls)):
+            os.makedirs(os.path.join(output_folder, 'test', cls))
+
         try:
 
-            for img in train:
-                try:
-                    if not os.path.exists(os.path.join(output_folder, 'train', cls)):
-                        os.makedirs(os.path.join(output_folder, 'train', cls))
-                    # copy the image to the train folder not move
-                    shutil.copy(os.path.join(cls_path, img), os.path.join(output_folder, 'train', cls, img))
+            for subset in ['train', 'val', 'test']:
+                for img in locals()[subset]:
+                    try:
+                        img_path = os.path.join(cls_path, img)
+                        output_path = os.path.join(output_folder, subset, cls, img)
 
-                except:
-                    traceback.print_exc()
-                    print(f'Error moving {img}')
-            for img in val:
-                try:
-                    if not os.path.exists(os.path.join(output_folder, 'val', cls)):
-                        os.makedirs(os.path.join(output_folder, 'val', cls))
-                    # copy the image to the val folder not move
-                    shutil.copy(os.path.join(cls_path, img), os.path.join(output_folder, 'val', cls, img))
-                except:
-                    print(f'Error moving {img}')
-            for img in test:
-                try:
-                    if not os.path.exists(os.path.join(output_folder, 'test', cls)):
-                        os.makedirs(os.path.join(output_folder, 'test', cls))
-                    # copy the image to the test folder not move
-                    shutil.copy(os.path.join(cls_path, img), os.path.join(output_folder, 'test', cls, img))
-                except:
-                    print(f'Error moving {img}')
+                        if remove_background:
+                            # Process the image to remove background
+                            print(f'removing background from {img}')
+                            image = imread(img_path)  # Ensure imread function is defined or imported
+                            processed_img, borders, _, label,_,_,_ = process_without_gb(image, image, [], [], [])
+                            imwrite(output_path, processed_img)  # Save the processed image
+                            imwrite(output_path.replace('.jpg', '_label.jpg'), label)  # Save the label image
+                            print(f'Processed {img}')
+                        else:
+                            # Copy the image without processing
+                            shutil.copy(img_path, output_path)
+
+                    except Exception as e:
+                        print(f'Error processing {img}: {e}')
+                        traceback.print_exc()
         except:
             print(f'Error splitting {cls}')
             traceback.print_exc()
