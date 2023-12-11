@@ -9,13 +9,14 @@ import datetime
 import json
 import toml
 
-
+torch.cuda.empty_cache()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 print(f'Using device: {device}')
 
 try:
     # Load configurations from toml file
-    with open("../train_state.toml", "r") as toml_file:
+    with open("train_state.toml", "r") as toml_file:
         config = toml.load(toml_file)
 except:
     print('Error loading toml file')
