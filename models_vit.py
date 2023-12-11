@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 
 import timm.models.vision_transformer
-import pytorch_ssim
+
 from torchvision import models
 from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 
