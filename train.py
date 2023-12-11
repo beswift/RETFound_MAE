@@ -15,13 +15,13 @@ print(f'Using device: {device}')
 
 try:
     # Load configurations from toml file
-    with open("train_state.toml", "r") as toml_file:
+    with open("../train_state.toml", "r") as toml_file:
         config = toml.load(toml_file)
 except:
     print('Error loading toml file')
-    if not os.path.exists('train_state.toml'):
+    if not os.path.exists('../train_state.toml'):
         print('File does not exist')
-        os.makedirs('train_state.toml')
+        os.makedirs('../train_state.toml')
     else:
         print('File exists but could not be loaded')
 
@@ -29,6 +29,7 @@ except:
 cfpweightpath = config["training"]["cfpweightpath"]
 octweightpath = config["training"]["octweightpath"]
 parent_folder = config["training"]["parent_folder"]
+print(f'Parent folder: {parent_folder}')
 output_folder = config["training"]["output_folder"]
 batch_size = config["training"]["batch_size"]
 world_size = config["training"]["world_size"]
@@ -63,7 +64,10 @@ if not os.path.exists(output_folder):
 
 
 # if parent folder is not split (i.e does not contain train, val, test folders), split it
-if not os.path.exists(os.path.join(parent_folder, 'train')):
+dirs = os.listdir(parent_folder)
+print(f'Parent folder contains: {dirs}')
+if 'train' not in dirs or 'val' not in dirs or 'test' not in dirs:
+    print(f'Parent folder {parent_folder} is not split. Splitting now.')
     data_folder = split_dataset(parent_folder,remove_background=rmbg)
 else:
     data_folder = parent_folder
@@ -136,14 +140,20 @@ with open(dataset_info_path, 'w') as f:
 
 # Save training configuration
 training_config = {
-    'batch_size': 8,
-    'epochs': 5,
+    'batch_size': batch_size,
+    'epochs': epochs,
     'model': 'vit_large_patch16',
-    'base_learning_rate': '5e-5',
-    'layer_decay': 0.65,
-    'weight_decay': 0.05,
-    'drop_path_rate': 0.2,
-    'input_size': 224,
+    'base_learning_rate': blr,
+    'layer_decay': layer_decay,
+    'weight_decay': weight_decay,
+    'drop_path_rate': drop_path,
+    'input_size': input_size,
+    'num_classes': num_classes,
+    'task': task,
+    'output_dir': output_folder,
+    'world_size': world_size,
+    'finetune': ft_weightpath,
+    'remove_background': rmbg,
     # Add any other relevant configuration parameters here
 }
 
@@ -185,7 +195,8 @@ config = {
     "weight_decay": weight_decay,
     "base_learning_rate": blr,
     "batch_size": batch_size,
-    "epochs": epochs
+    "epochs": epochs,
+    "remove_background": rmbg,
 }
 
 # Content for the model card

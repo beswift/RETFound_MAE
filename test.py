@@ -10,15 +10,29 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import random
+from util.fundus_prep import imread, imwrite, process_without_gb
 
-modelStore = './models/'
+import toml
+
+# Load configurations from toml file
+with open("test_state.toml", "r") as toml_file:
+    test_config = toml.load(toml_file)
+
+# Access your variables
+modelStore = test_config["test"]["modelStore"]
+model_folder = test_config["test"]["model_folder"]
+use_thresholding = test_config["test"]["use_thresholding"]
+imagedir = test_config["test"]["imagedir"]
+
 if not os.path.exists(modelStore):
     os.makedirs(modelStore)
 
-model_folder = 'ch-observations-12-07-2023-020211'
 model_path = os.path.join(modelStore, model_folder)
+predictions_path = os.path.join(model_path, 'predictions')
+if not os.path.exists(predictions_path):
+    os.makedirs(predictions_path)
 
-use_thresholding = False
+
 
 # Paths to the configuration files
 dataset_info_path = os.path.join(model_path, 'dataset_info.json')
@@ -42,6 +56,7 @@ try:
     with open(training_config_path, 'r') as file:
         training_config = json.load(file)
     input_size = training_config['input_size']
+    remove_background = training_config['rmbg']
 except:
     print('No training configuration found. Using default input size.')
     input_size = 224
@@ -69,7 +84,7 @@ def show_cam_on_image(img, mask):
 
 
 # Function to generate visualization
-def generate_visualization(transformed_image, class_index=None, model=None):
+def generate_visualization(transformed_image, class_index=None, model=None,use_thresholding=False):
     # Ensure the image tensor is on the correct device
 
     # Generate LRP
@@ -127,27 +142,31 @@ model.load_state_dict(checkpoint_model, strict=False)
 model.eval()
 model.to(device)
 
-
-
-
-
 # Define your image transforms
 transform = transforms.Compose([
     transforms.Resize((input_size, input_size)),
     transforms.ToTensor(),
     # Add any other transforms used during training
 ])
-
+if remove_background == True:
+    transform = transforms.Compose([
+        transforms.Lambda(lambda img: transforms.ToTensor()(Image.fromarray(process_without_gb(np.array(img), np.array(img), [], [], [])[0]))),
+        transforms.Resize((input_size, input_size)),
+    ])
 
 # Load and preprocess the image
-imagedir = 'D:\\data\\RetFound\\images'
+imagedir = imagedir
 images = [f for f in os.listdir(imagedir) if os.path.isfile(os.path.join(imagedir, f))]
-# create function to pick 3 random images from the list of images in the folder
+
+
+# pick 3 random images from the list of images in the folder
 def random_images(images):
     random_images = []
     for i in range(3):
         random_images.append(images[random.randint(0, len(images) - 1)])
     return random_images
+
+
 selected_images = random_images(images)
 print(selected_images)
 count = 0
@@ -178,12 +197,12 @@ for s in range(len(selected_images)):
     # Print the prediction
     print("Predicted class:", prediction.item())
     print("Predicted class name:", classes[prediction.item()])
-    #display the % confidence
+    # display the % confidence
     print("Confidence:", torch.nn.functional.softmax(output, dim=1)[0][prediction.item()].item())
 
-    #display the class and % confidence for all classes in a nice format
+    # display the class and % confidence for all classes in a nice format
     print("All classes and confidence:")
-    #sort by confidence
+    # sort by confidence
     sorted, indices = torch.sort(torch.nn.functional.softmax(output, dim=1)[0], descending=True)
     for i in range(num_classes):
         print(classes[indices[i]], sorted[i].item())
@@ -191,10 +210,11 @@ for s in range(len(selected_images)):
     original_image = Image.open(image_path)
     print("Image loaded")
     top_class_name = classes[top_prediction]
+    confidence = probabilities[top_prediction].item()
     print("Top class name:", top_class_name)
     original_image.show()
 
-    original_image.save(os.path.join(model_path, f'{s}-{count}-original_image-{top_class_name}.jpg'))
+    original_image.save(os.path.join(predictions_path, f'{s}-{count}-original_image-{top_class_name}-{confidence:4f}.jpg'))
 
     # Display top predictions with confidence
     print("Top Predictions:")
@@ -208,7 +228,11 @@ for s in range(len(selected_images)):
         vis = generate_visualization(image, class_index=class_index)
         vis_image = Image.fromarray(cv2.cvtColor(vis, cv2.COLOR_BGR2RGB))
         vis_image.show()  # or vis_image.save(f'output_class_{class_index}.jpg')
-        vis_image.save(os.path.join(model_path, f'{s}-{count}-vis_image-{class_name}.jpg'))
-
+        vis_image.save(os.path.join(predictions_path, f'{s}-{count}-vis_image-{class_name}-{confidence:.4f}.jpg'))
+        if use_thresholding == True:
+            vis = generate_visualization(image, class_index=class_index, use_thresholding=True)
+            vis_image = Image.fromarray(cv2.cvtColor(vis, cv2.COLOR_BGR2RGB))
+            vis_image.show()
+            vis_image.save(os.path.join(predictions_path, f'{s}-{count}-vis_image-{class_name}-{confidence:.4f}-thresholded.jpg'))
 
         count += 1
