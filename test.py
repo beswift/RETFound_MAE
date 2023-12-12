@@ -57,6 +57,9 @@ try:
         training_config = json.load(file)
     input_size = training_config['input_size']
     remove_background = training_config['rmbg']
+    drop_path = training_config['drop_path']
+    weight_decay = training_config['weight_decay']
+    layer_decay = training_config['layer_decay']
 except:
     print('No training configuration found. Using default input size.')
     input_size = 224
@@ -135,7 +138,7 @@ def generate_visualization(transformed_image, class_index=None, model=None, use_
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Load the model with the correct number of classes
-model = models_vit.__dict__['vit_large_patch16'](num_classes=num_classes, drop_path_rate=0.2, global_pool=True,img_size=input_size)
+model = models_vit.__dict__['vit_large_patch16'](num_classes=num_classes, drop_path_rate=drop_path, global_pool=True,img_size=input_size)
 
 # Load the state dictionary
 checkpoint = torch.load(weightpath, map_location=device)
