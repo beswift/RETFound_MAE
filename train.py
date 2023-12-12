@@ -20,9 +20,9 @@ try:
         config = toml.load(toml_file)
 except:
     print('Error loading toml file')
-    if not os.path.exists('../train_state.toml'):
+    if not os.path.exists('train_state.toml'):
         print('File does not exist')
-        os.makedirs('../train_state.toml')
+        os.makedirs('train_state.toml')
     else:
         print('File exists but could not be loaded')
 
@@ -103,6 +103,7 @@ model = models_vit.__dict__[base_model](
     num_classes=num_classes,
     drop_path_rate=drop_path,
     global_pool=True,
+    img_size=input_size,
 )
 
 
@@ -154,7 +155,7 @@ training_config = {
     'output_dir': output_folder,
     'world_size': world_size,
     'finetune': ft_weightpath,
-    'remove_background': rmbg,
+    'rmbg': rmbg,
     # Add any other relevant configuration parameters here
 }
 
@@ -178,6 +179,7 @@ command = [
     '--nb_classes',str(num_classes),
     '--task', f'./{task}/',
     '--output_dir', output_folder,
+    '--input_size', str(input_size),
 
     # Add other necessary arguments here
 ]

@@ -60,6 +60,7 @@ try:
 except:
     print('No training configuration found. Using default input size.')
     input_size = 224
+    remove_background = False
 
 
 def show_cam_on_image(img, mask):
@@ -84,22 +85,30 @@ def show_cam_on_image(img, mask):
 
 
 # Function to generate visualization
-def generate_visualization(transformed_image, class_index=None, model=None,use_thresholding=False):
-    # Ensure the image tensor is on the correct device
-
+def generate_visualization(transformed_image, class_index=None, model=None, use_thresholding=False, patch_size=16):
     # Generate LRP
     transformer_attribution = attribution_generator.generate_LRP(transformed_image,
                                                                  method="transformer_attribution",
                                                                  index=class_index).detach()
-    transformer_attribution = transformer_attribution.reshape(1, 1, 14, 14)
-    transformer_attribution = torch.nn.functional.interpolate(transformer_attribution, scale_factor=16,
-                                                              mode='bilinear',
-                                                              align_corners=True)
-    transformer_attribution = transformer_attribution.reshape(224,
-                                                              224).data.cpu().numpy()  # Move to CPU before converting to NumPy
+
+    # Move to CPU and convert to numpy
+    transformer_attribution = transformer_attribution.cpu().numpy()
+
+    # Calculate the grid size based on patch size
+    input_height, input_width = transformed_image.shape[2], transformed_image.shape[3]  # Assuming transformed_image is 4D
+    grid_size = (input_height // patch_size, input_width // patch_size)
+
+    # Reshape and interpolate
+    transformer_attribution = transformer_attribution.reshape(1, 1, *grid_size)
+    transformer_attribution = torch.nn.functional.interpolate(torch.tensor(transformer_attribution),
+                                                              size=(input_height, input_width),
+                                                              mode='bilinear', align_corners=True)
+    transformer_attribution = transformer_attribution.reshape(input_height, input_width).numpy()
+
+    # Normalize transformer attribution
     transformer_attribution = (transformer_attribution - transformer_attribution.min()) / (
             transformer_attribution.max() - transformer_attribution.min())
-
+    # Threshold the transformer attribution
     if use_thresholding:
         transformer_attribution = transformer_attribution * 255
         transformer_attribution = transformer_attribution.astype(np.uint8)
@@ -107,15 +116,14 @@ def generate_visualization(transformed_image, class_index=None, model=None,use_t
                                                      cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         transformer_attribution[transformer_attribution == 255] = 1
 
+
+
     # Convert the original PIL Image to a NumPy array for processing
 
+    # Convert the original PIL Image to a NumPy array for processing
     original_image_np = np.array(transformed_image.cpu())
-    image_transformer_attribution = original_image_np / 255.0  # Normalize to range [0, 1]
-
-    # Normalize transformer attribution
-    transformer_attribution = (transformer_attribution - transformer_attribution.min()) / (
-            transformer_attribution.max() - transformer_attribution.min())
-
+    image_transformer_attribution = original_image_np.squeeze(0).transpose(1, 2,
+                                                                           0)  # Also ensure this is correctly reshaped
     # Create heatmap from mask on image
     vis = show_cam_on_image(image_transformer_attribution, transformer_attribution)
     vis = np.uint8(255 * vis)
@@ -127,7 +135,7 @@ def generate_visualization(transformed_image, class_index=None, model=None,use_t
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Load the model with the correct number of classes
-model = models_vit.__dict__['vit_large_patch16'](num_classes=num_classes, drop_path_rate=0.2, global_pool=True)
+model = models_vit.__dict__['vit_large_patch16'](num_classes=num_classes, drop_path_rate=0.2, global_pool=True,img_size=input_size)
 
 # Load the state dictionary
 checkpoint = torch.load(weightpath, map_location=device)
@@ -172,7 +180,7 @@ print(selected_images)
 count = 0
 
 # Initialize explainability modules
-model_explain = vit_LRP(pretrained=True, checkpoint=weightpath)  # Ensure this returns the LRP-capable model
+model_explain = vit_LRP(pretrained=True, checkpoint=weightpath,img_size = input_size)  # Ensure this returns the LRP-capable model
 model_explain = model_explain.to(device)
 model_explain.eval()
 
