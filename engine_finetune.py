@@ -17,7 +17,10 @@ import util.misc as misc
 import util.lr_sched as lr_sched
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, average_precision_score,multilabel_confusion_matrix
 from pycm import *
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 import numpy as np
 
 
@@ -40,7 +43,10 @@ def misc_measures(confusion_matrix):
         sensitivity.append(sensitivity_)
         specificity_ = 1.*cm1[0,0]/(cm1[0,1]+cm1[0,0])
         specificity.append(specificity_)
-        precision_ = 1.*cm1[1,1]/(cm1[1,1]+cm1[0,1])
+        if (cm1[1, 1] + cm1[0, 1]) > 0:
+            precision_ = 1. * cm1[1, 1] / (cm1[1, 1] + cm1[0, 1])
+        else:
+            precision_ = float('nan')  # or some default value
         precision.append(precision_)
         G.append(np.sqrt(sensitivity_*specificity_))
         F1_score_2.append(2*precision_*sensitivity_/(precision_+sensitivity_))

@@ -52,24 +52,21 @@ authors = config["training"]["authors"]
 references = config["training"]["references"]
 intended_use = config["training"]["intended_use"]
 
-
-
 # we'll use the time in the output folder name to avoid overwriting previous results - so clean it up
 time = datetime.datetime.now().strftime("%m-%d-%Y-%H%M%S").replace(' ', '_').replace(':', '')
 
 # create output folder if it doesn't exist
 if output_folder == '':
-    output_folder = os.path.join(parent_folder,'outputs', f'_artifacts_{time}')
+    output_folder = os.path.join(parent_folder, 'outputs', f'_artifacts_{time}')
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
-
 
 # if parent folder is not split (i.e does not contain train, val, test folders), split it
 dirs = os.listdir(parent_folder)
 print(f'Parent folder contains: {dirs}')
 if 'train' not in dirs or 'val' not in dirs or 'test' not in dirs:
     print(f'Parent folder {parent_folder} is not split. Splitting now.')
-    data_folder = split_dataset(parent_folder,remove_background=rmbg)
+    data_folder = split_dataset(parent_folder, remove_background=rmbg)
 else:
     data_folder = parent_folder
 
@@ -84,19 +81,19 @@ try:
 except:
     print(f'Error creating task folder: {task}')
 
-
 check_images(data_folder)
 
-num_classes = len([d for d in os.listdir(os.path.join(data_folder, 'train')) if os.path.isdir(os.path.join(data_folder, 'train', d))])
-#number of training images is the total number of files in all subfolders of train
+num_classes = len(
+    [d for d in os.listdir(os.path.join(data_folder, 'train')) if os.path.isdir(os.path.join(data_folder, 'train', d))])
+# number of training images is the total number of files in all subfolders of train
 num_training_images = sum([len(files) for r, d, files in os.walk(os.path.join(data_folder, 'train'))])
-#classes are the subfolders of train only (i.e. the class names)
-classes = [d for d in os.listdir(os.path.join(data_folder, 'train')) if os.path.isdir(os.path.join(data_folder, 'train', d))]
+# classes are the subfolders of train only (i.e. the class names)
+classes = [d for d in os.listdir(os.path.join(data_folder, 'train')) if
+           os.path.isdir(os.path.join(data_folder, 'train', d))]
 
 print(f'Number of classes: {num_classes}')
 print(f'Classes: {classes}')
 print(f'Number of training images: {num_training_images}')
-
 
 # call the model
 model = models_vit.__dict__[base_model](
@@ -105,7 +102,6 @@ model = models_vit.__dict__[base_model](
     global_pool=True,
     img_size=input_size,
 )
-
 
 checkpoint = torch.load(ft_weightpath, map_location=device)
 
@@ -176,7 +172,7 @@ command = [
     '--layer_decay', str(layer_decay),
     '--weight_decay', str(weight_decay),
     '--drop_path', str(drop_path),
-    '--nb_classes',str(num_classes),
+    '--nb_classes', str(num_classes),
     '--task', f'./{task}/',
     '--output_dir', output_folder,
     '--input_size', str(input_size),
@@ -216,7 +212,6 @@ model_card = {
     "references": references,
 }
 
-
 # Save config.json
 config_path = os.path.join(task, 'config.json')
 with open(config_path, 'w') as f:
@@ -227,3 +222,83 @@ model_card_path = os.path.join(task, 'model_card.json')
 with open(model_card_path, 'w') as f:
     json.dump(model_card, f)
 
+# Convert model_card to Markdown format and save as README.md
+model_card_md = f"""# {model_card["model_name"]}
+## Description
+{model_card["description"]}
+
+## Use Cases
+- {model_card["use_cases"][0]}
+- {model_card["use_cases"][1]}
+
+## Limitations
+- {model_card["limitations"][0]}
+- {model_card["limitations"][1]}
+
+## Ethics
+- {model_card["ethics"][0]}
+- {model_card["ethics"][1]}
+
+## Training Data
+{model_card["training_data"]}
+
+## Training Procedure
+{model_card["training_procedure"]}
+
+## Intended Use
+{model_card["intended_use"]}
+
+## Authors
+- {model_card["authors"][0]}
+- {model_card["authors"][1]}
+
+## References
+- {model_card["references"][0]}
+- {model_card["references"][1]}
+"""
+
+readme_path = os.path.join(task, 'README.md')
+with open(readme_path, 'w') as f:
+    f.write(model_card_md)
+
+# Create a requirements.txt file for huggingface
+requirements = [
+    "torch==1.8.1+cu111",
+    "timm==0.3.2",
+    "torchvision==0.9.1+cu111",
+    "torchaudio==0.8.1",
+    "opencv-python>=4.5.3.56",
+    "pandas>=0.25.3",
+    "Pillow>=8.3.1",
+    "protobuf>=3.17.3",
+    "pycm>=3.2",
+    "pydicom>=2.3.0",
+    "scikit-image>=0.17.2",
+    "scikit-learn>=0.24.2",
+    "scipy>=1.5.4",
+    "tensorboard>=2.6.0",
+    "tensorboard-data-server>=0.6.1",
+    "tensorboard-plugin-wit>=1.8.0",
+    "tqdm>=4.62.1",
+    "einops>=0.3.0",
+    "h5py>=2.8.0",
+    "imageio>=2.9.0",
+    "matplotlib>=3.3.2",
+    "tqdm>=4.51.0",
+    "transformers>=3.5.1",
+    "utils>=1.0.1",
+    "Pygments>=2.7.4",
+    "pytorch-msssim>=1.0.0",
+    "toml",
+]
+requirements_path = os.path.join(task, 'requirements.txt')
+with open(requirements_path, 'w') as f:
+    f.writelines(f"{req}\n" for req in requirements)
+
+test_toml = toml.load('test_state.toml')
+# update model_folder to the new model folder
+test_toml["test"]["model_folder"] = task
+test_toml["test"]["input_size"] = input_size
+
+with open('test_state.toml', 'w') as toml_file:
+    toml.dump(test_toml, toml_file)
