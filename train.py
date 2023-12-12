@@ -72,8 +72,10 @@ else:
 
 if task == '':
     task = os.path.join(output_folder, f'task-{time}')
+    model_folder_name = f'task-{time}'
 else:
     task = f'./models/{task}-{time}/'
+    model_folder_name = f'{task}-{time}'
 
 try:
     if not os.path.exists(task):
@@ -201,6 +203,7 @@ config = {
 # Content for the model card
 model_card = {
     "model_name": f'{task}-{time}',
+    "model_type": "ViT",
     "description": f'Fine-tuned {base_model} model for {task}',
     "use_cases": use_cases,
     "limitations": limitations,
@@ -297,7 +300,7 @@ with open(requirements_path, 'w') as f:
 
 test_toml = toml.load('test_state.toml')
 # update model_folder to the new model folder
-test_toml["test"]["model_folder"] = task
+test_toml["test"]["model_folder"] = model_folder_name
 test_toml["test"]["input_size"] = input_size
 
 with open('test_state.toml', 'w') as toml_file:
