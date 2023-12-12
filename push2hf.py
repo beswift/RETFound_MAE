@@ -11,7 +11,7 @@ model_store = config["test"]["modelStore"]
 model_directory = config["test"]["model_folder"]
 repository_name = config["hf"]["hf_repo"]
 hf_username = config["hf"]["hf_user"]
-hf_access_token = config["hf"]["hf+tkn"]
+hf_access_token = config["hf"]["hf_tkn"]
 
 
 def push_to_huggingface_hub(model_dir, model_repo_name, username, hf_token):

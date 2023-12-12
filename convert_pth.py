@@ -1,6 +1,7 @@
 import torch
 import models_vit
 import toml
+import os
 
 # Function to load the configuration file
 def load_config(config_file):
@@ -13,13 +14,18 @@ def load_config(config_file):
 
 # Load configurations from the TOML file
 config = load_config("train_state.toml")
+test_config = load_config("test_state.toml")
+
+checkpoint_store = test_config["test"]["modelStore"]
+checkpoint_folder = test_config["test"]["model_folder"]
+checkpoint_dir = os.path.join(checkpoint_store, checkpoint_folder)
 
 # Extract relevant configuration parameters
 base_model = config["training"]["base_model"]
 input_size = config["training"]["input_size"]
 num_classes = config["training"]["num_classes"]
 drop_path = config["training"]["drop_path"]
-ft_weightpath = config["training"]["ft_weightpath"]
+ft_weightpath = checkpoint_dir + '/checkpoint-best.pth'
 
 # Initialize the model
 # Note: Add other parameters if your model initialization requires them
