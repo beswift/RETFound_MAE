@@ -148,4 +148,4 @@ train_state.toml
 
 
 test_state.toml~
-pytorch_model.bin
+models/ch-observations-12-11-2023-224953/pytorch_model.bin

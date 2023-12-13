@@ -41,5 +41,7 @@ checkpoint = torch.load(ft_weightpath, map_location='cpu')
 model.load_state_dict(checkpoint['model'])
 
 # Save the model as pytorch_model.bin
-torch.save(model.state_dict(), 'pytorch_model.bin')
+torch_model_name = 'pytorch_model.bin'
+torch_model_save_path = os.path.join(checkpoint_dir, torch_model_name)
+torch.save(model.state_dict(), torch_model_save_path)
 print("Model saved as pytorch_model.bin")

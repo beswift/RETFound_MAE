@@ -9,6 +9,9 @@ import datetime
 import json
 import toml
 
+
+
+
 torch.cuda.empty_cache()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -70,12 +73,15 @@ if 'train' not in dirs or 'val' not in dirs or 'test' not in dirs:
 else:
     data_folder = parent_folder
 
+model_name = f'{task}-{time}'
 if task == '':
-    task = os.path.join(output_folder, f'task-{time}')
     model_folder_name = f'task-{time}'
+    task = os.path.join(output_folder, f'task-{time}')
+
 else:
-    task = f'./models/{task}-{time}/'
     model_folder_name = f'{task}-{time}'
+    task = f'./models/{task}-{time}/'
+
 
 try:
     if not os.path.exists(task):
@@ -185,9 +191,10 @@ command = [
 # Run the fine-tuning command
 subprocess.run(command)
 
+
 # Config for the model
 config = {
-    "model_type": "ViT",
+    "model_type": "vit",
     "architecture": base_model,
     "input_size": input_size,
     "num_classes": num_classes,
@@ -202,9 +209,10 @@ config = {
 
 # Content for the model card
 model_card = {
-    "model_name": f'{task}-{time}',
-    "model_type": "ViT",
-    "description": f'Fine-tuned {base_model} model for {task}',
+    "model_name": model_name,
+    "model_type": "vit",
+    "architecture": base_model,
+    "description": f'Fine-tuned {base_model} model for {model_name}',
     "use_cases": use_cases,
     "limitations": limitations,
     "ethics": ethics,
@@ -215,15 +223,21 @@ model_card = {
     "references": references,
 }
 
+
+
 # Save config.json
 config_path = os.path.join(task, 'config.json')
 with open(config_path, 'w') as f:
     json.dump(config, f)
 
+
+
 # Save model_card.json
 model_card_path = os.path.join(task, 'model_card.json')
 with open(model_card_path, 'w') as f:
     json.dump(model_card, f)
+
+
 
 # Convert model_card to Markdown format and save as README.md
 model_card_md = f"""# {model_card["model_name"]}
@@ -264,6 +278,8 @@ readme_path = os.path.join(task, 'README.md')
 with open(readme_path, 'w') as f:
     f.write(model_card_md)
 
+
+
 # Create a requirements.txt file for huggingface
 requirements = [
     "torch==1.8.1+cu111",
@@ -294,6 +310,8 @@ requirements = [
     "pytorch-msssim>=1.0.0",
     "toml",
 ]
+
+
 requirements_path = os.path.join(task, 'requirements.txt')
 with open(requirements_path, 'w') as f:
     f.writelines(f"{req}\n" for req in requirements)
@@ -305,3 +323,46 @@ test_toml["test"]["input_size"] = input_size
 
 with open('test_state.toml', 'w') as toml_file:
     toml.dump(test_toml, toml_file)
+
+
+
+from transformers import ViTConfig
+
+# Create a ViTConfig object with relevant parameters
+vit_config = ViTConfig(
+    image_size=input_size,
+    num_labels=num_classes,
+    # Add other parameters specific to your model architecture here
+)
+
+# Instantiate your custom model
+model_wrapper = models_vit.VisionTransformerForImageClassification(config=vit_config)
+
+# Load your trained model's state dict
+model_path = os.path.join(task, 'checkpoint-best.pth')
+checkpoint = torch.load(model_path, map_location='cpu')
+model.load_state_dict(checkpoint['model'])
+
+# Save the model and configuration
+model_wrapper.save_pretrained(save_directory=task)
+
+# Save the configuration separately if needed
+config_path = os.path.join(task, 'config_vit.json')
+vit_config.to_json_file(config_path)
+
+# create and save a preprocessor_config.json file
+size = [input_size, input_size]
+preprocessor_config = {
+    "preprocess": {
+        "resize": size,
+        "normalize": {
+            "mean": [0.485, 0.456, 0.406],
+            "std": [0.229, 0.224, 0.225]
+        }
+    }
+}
+
+preprocessor_config_path = os.path.join(task, 'preprocessor_config.json')
+with open(preprocessor_config_path, 'w') as f:
+    json.dump(preprocessor_config, f)
+

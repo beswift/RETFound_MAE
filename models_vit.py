@@ -11,7 +11,10 @@ import torch.nn as nn
 import timm.models.vision_transformer
 
 from torchvision import models
-from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
+from pytorch_msssim import SSIM
+
+from transformers import PreTrainedModel
+from transformers.modeling_outputs import SequenceClassifierOutput
 
 
 
@@ -50,7 +53,22 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
             x = self.norm(x)
             outcome = x[:, 0]
 
+
+
         return outcome
+
+
+
+class VisionTransformerForImageClassification(PreTrainedModel):
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(config)
+        self.vit = vit_large_patch16(*args, **kwargs)  # Your custom VisionTransformer model
+
+    def forward(self, pixel_values, labels=None):
+        outputs = self.vit(pixel_values)
+        return SequenceClassifierOutput(logits=outputs)
+
+
 
 
 class ViTForImageReconstruction(nn.Module):

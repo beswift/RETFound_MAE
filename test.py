@@ -11,7 +11,7 @@ import numpy as np
 import cv2
 import random
 from util.fundus_prep import imread, imwrite, process_without_gb
-
+import traceback
 import toml
 
 # Load configurations from toml file
@@ -33,6 +33,7 @@ if not os.path.exists(predictions_path):
     os.makedirs(predictions_path)
 
 
+#TODO: come back to this and clean up when you decide on a final config!
 
 # Paths to the configuration files
 dataset_info_path = os.path.join(model_path, 'dataset_info.json')
@@ -55,15 +56,29 @@ try:
     # Read training configuration (if necessary)
     with open(training_config_path, 'r') as file:
         training_config = json.load(file)
+except:
+    print('No training configuration found.')
+try:
     input_size = training_config['input_size']
-    remove_background = training_config['rmbg']
-    drop_path = training_config['drop_path']
+    try:
+        remove_background = training_config['rmbg']
+    except:
+        remove_background = training_config['remove_background']
+    try:
+        drop_path = training_config['drop_path']
+    except:
+        drop_path = training_config['drop_path_rate']
     weight_decay = training_config['weight_decay']
     layer_decay = training_config['layer_decay']
 except:
+    traceback.print_exc()
     print('No training configuration found. Using default input size.')
     input_size = 224
     remove_background = False
+    drop_path = 0.2
+    weight_decay = 0.0
+    layer_decay = 0.0
+
 
 
 def show_cam_on_image(img, mask):

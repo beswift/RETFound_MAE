@@ -1,36 +1,51 @@
-from io import BytesIO
-
-from transformers import ViTFeatureExtractor, ViTForImageClassification
 from PIL import Image
-import requests
+import os
+import torch
+from transformers import ViTFeatureExtractor, AutoModelForImageClassification
+import random
+import toml
 
-def perform_test_inference(model_name, image_url):
-    """
-    Performs a test inference using the model from Hugging Face Hub.
+# Load configurations from toml file
+with open("test_state.toml", "r") as toml_file:
+    test_config = toml.load(toml_file)
 
-    Args:
-    model_name (str): Full path of the model on Hugging Face Hub (e.g., 'username/model_name').
-    image_url (str): URL of an image to test the model.
-    """
-    # Load the model and feature extractor
-    model = ViTForImageClassification.from_pretrained(model_name)
-    feature_extractor = ViTFeatureExtractor.from_pretrained(model_name)
+# Access your variables
+imagedir = test_config["test"]["imagedir"]
 
-    # Load and preprocess the image
-    response = requests.get(image_url)
-    image = Image.open(BytesIO(response.content))
-    inputs = feature_extractor(images=image, return_tensors="pt")
+# Load model and processor
+model = AutoModelForImageClassification.from_pretrained("bswift/test")
+processor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224",size=256)
+# Update the keys to match the expected format in VisionTransformerForImageClassification
+updated_state_dict = {f'vit.{k}' if not k.startswith('vit.') else k: v for k, v in model.state_dict().items()}
+
+# Load the updated state dict into your model
+model.load_state_dict(updated_state_dict, strict=False)
+model.eval()
+
+
+# Load and preprocess the image
+images = [f for f in os.listdir(imagedir) if os.path.isfile(os.path.join(imagedir, f))]
+
+selected_images = random.sample(images, min(len(images), 3))
+print("Selected images:", selected_images)
+
+for image_name in selected_images:
+    image_path = os.path.join(imagedir, image_name)
+    image = Image.open(image_path)
+    image.show()
+
+    # Preprocess the image
+    inputs = processor(image, return_tensors="pt")
 
     # Perform inference
-    outputs = model(**inputs)
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    # Process outputs
     logits = outputs.logits
-    predicted_class_idx = logits.argmax(-1).item()
+    probabilities = torch.nn.functional.softmax(logits, dim=-1)
+    top_results = torch.topk(probabilities, 1).indices[0]
 
-    print(f"Predicted class index: {predicted_class_idx}")
-
-# Example usage
-test_model_name = "your-username/your-model-name"  # Change to your model's Hugging Face path
-test_image_url = "https://example.com/test_image.jpg"  # URL of a test image
-
-# Uncomment the following line to perform a test inference
-# perform_test_inference(test_model_name, test_image_url)
+    for idx in top_results:
+        confidence = probabilities[0, idx.item()].item()
+        print(f"Class {idx.item()} Confidence: {confidence:.4f}")
